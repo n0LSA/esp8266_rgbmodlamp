@@ -1,0 +1,201 @@
+#include "../../include/pixeleffect/pixeleffect.h"
+#include "../../include/pixel/color_palette.h"
+#include "../../include/display/lamp.h"
+extern CRGBPalette16 cTargetPalette;;
+
+
+void EffectFx_neo::setup(uint8_t strip_pos, OUTPUT_EFFECTTYPE mod){ 
+  _strip_pos = strip_pos;
+  boolean isTw;
+  leds_managePtrGet()->get_ledsIsTw(strip_pos, isTw);
+  if (isTw) ledarray_w  = leds_managePtrGet()->get_crgwbArray(strip_pos);
+  else      ledarray    = leds_managePtrGet()->get_crgbArray(strip_pos);
+  // DevicePtrGet()->get_outputArray(strip_pos)->_output_effecttype = OET_NONE;
+  leds_managePtrGet()->get_numLeds(strip_pos, numLeds);
+  _effectType = mod;
+  DevicePtrGet()->get_outputArray(strip_pos)->set_effectType(_effectType);
+  neoSetting.pos            = 0;
+  neoSetting.numLeds        = numLeds;
+  neoSetting.segment        = true;
+  neoSetting.reverseStart   = false;
+  neoSetting.c1             = {0,80,0};
+  neoSetting.c2             = {0,0,80};    
+  neoSetting.isTw           = isTw;                
+  neoSetting.fade           = getCtrlVal(3).toInt();                
+  neoSetting.scale          = scale;                
+  neoSetting.size           = 3;                
+  neoSetting.intensity      = 60;                
+  neoSetting.palette        = 1;                
+  oldBpm                    = 0;
+} 
+void EffectFx_neo::instance(){
+  boolean isTw;
+  leds_managePtrGet()->get_ledsIsTw(_strip_pos, isTw);    
+  if (isTw) _neoFxxPtr = new WS2812FX(_strip_pos, ledarray_w, &neoSetting);
+  else      _neoFxxPtr = new WS2812FX(_strip_pos, ledarray, &neoSetting);  
+  _neoFxxPtr->setSpeed(60);   
+  LAMPPTRGET()->effectsLoop_palGrad_reset(_pPos);
+  _gTargetPalette       =  gGradientPalettes[_pPos] ;
+  neoSetting.pPalette   =  gGradientPalettes[_pPos] ;   
+}
+
+void EffectFx_neo::update(){
+    if (oldBpm!= speed){
+      oldBpm = speed;
+      _neoFxxPtr->setSpeed(convertSpeed(speed));
+    }   
+    neoSetting.intensity  = brightness;
+    neoSetting.scale      = scale;
+    if (DevicePtrGet()->get_outputArray(_strip_pos)->eff_isHueTimer() ) {
+      if (_hue_1==0) {
+        if (statu) {
+                          neoSetting.c1 = hsv2rgb (LAMPPTRGET()->_hsvLoop_1.hue(),        255, 255, 0); 
+          if (_hue_2==0)  neoSetting.c2 = hsv2rgb (LAMPPTRGET()->_hsvLoop_1.hue()+_varia, 255, 255, 0);    
+          LAMPPTRGET()->_hsvLoop_1.hueChangeToggle();         
+        } 
+      }
+      if (_hue_2==0 && _hue_1!=0) {
+        if (statu) {
+                          neoSetting.c2 = hsv2rgb (LAMPPTRGET()->_hsvLoop_2.hue(),        255, 255, 0); 
+          if (_hue_2!=0)  neoSetting.c2 = hsv2rgb (LAMPPTRGET()->_hsvLoop_2.hue()+_varia, 255, 255, 0);    
+          LAMPPTRGET()->_hsvLoop_2.hueChangeToggle();         
+        } 
+      }           
+    } 
+    if (_effectType == OET_PALGRAD){
+      // neoSetting.pPalette = cTargetPalette ;
+      if ((millis()-_timer_toward)>40){
+          nblendPaletteTowardPalette(  neoSetting.pPalette, _gTargetPalette, 48);
+          _timer_toward = millis();
+      }
+      if (LAMPPTRGET()->_palGraddPos != _pPos) {
+        _pPos = LAMPPTRGET()->_palGraddPos;
+        if (_pPos>GRADIENT_PALETTS_COUNT){_pPos=0;LAMPPTRGET()->_palGraddPos=0;}
+        _gTargetPalette =  gGradientPalettes[_pPos] ;
+      }      
+    }
+    
+    _neoFxxPtr->service(statu, show);
+} 
+void EffectFx_neo::set_dynCtrl(UIControl*_val){
+  if      (_val->getId()==3) { neoSetting.fade = EffectCalc::setDynCtrl(_val).toInt(); }
+  else if (_val->getId()==4) { LAMPPTRGET()->effectsLoop_TimerHue(EffectCalc::setDynCtrl(_val).toInt()); }
+  else if (_val->getId()==8) {
+    _hue_1 = EffectCalc::setDynCtrl(_val).toInt(); 
+    if (_hue_1 != 0) {neoSetting.c1 = hsv2rgb (_hue_1, 255, 255, 0);} 
+  }
+  else if (_val->getId()==9) {
+    _hue_2 = EffectCalc::setDynCtrl(_val).toInt(); 
+    if (_hue_2 != 0) {neoSetting.c2 = hsv2rgb (_hue_2, 255, 255, 0);}     
+  }
+  else if (_val->getId()==5) { _varia = EffectCalc::setDynCtrl(_val).toInt(); }
+  else if (_val->getId()==6) { neoSetting.size = EffectCalc::setDynCtrl(_val).toInt(); }
+  else EffectCalc::setDynCtrl(_val).toInt();
+  #ifdef ALT_DEBUG_TARCE
+    _val->print();  
+  #endif
+}
+EffectFx_neo::~EffectFx_neo(){
+  delete _neoFxxPtr;
+  _neoFxxPtr= nullptr;
+}   
+void EffectFx_mode::load(uint8_t strip_pos){
+  
+  switch (_mod) {
+  case 0    : neoSetting.segment = false  ; break;
+  case 2    : neoSetting.segment = false  ; break;
+  case 4    : neoSetting.segment = false  ; break;
+  case 6    : neoSetting.segment = false  ; break;
+  case 8    : neoSetting.segment = false  ; break;
+  case 10   : neoSetting.segment = false  ; break;
+  case 12   : neoSetting.segment = false  ; break;
+  case 14   : neoSetting.segment = false  ; break;
+  case 16   : neoSetting.segment = false  ; break;
+  case 17   : neoSetting.segment = false  ; break;
+  case 19   : neoSetting.segment = false  ; break;
+  }  
+  switch (_mod) {
+    case 2: case 3: case 4: case 5: case 6: case 7: case 12: case 13: case 17: case 18: case 19: case 20: setup(strip_pos, OET_HUETIMER); break;
+    case 10: case 11: setup(strip_pos, OET_PALGRAD); break;
+    default: setup(strip_pos); break;
+  }
+  instance();
+  switch (_mod) {
+    case 0    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_pride               ; break;
+    case 1    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_pride               ; break;
+    case 2    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe          ; break;
+    case 3    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe          ; break;
+    case 4    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_inv      ; break;
+    case 5    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_inv      ; break;
+    case 6    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_rev_inv  ; break;
+    case 7    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_rev_inv  ; break;
+    case 8    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_random   ; break;
+    case 9    : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_random   ; break;
+    case 10   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_colorwaves          ; break;
+    case 11   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_colorwaves          ; break;
+    case 12   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_rainbow_cycle       ; break;
+    case 13   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_rainbow_cycle       ; break;
+    case 14   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_rainbow             ; neoSetting.palette = 0; break;
+    case 15   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_rainbow             ; neoSetting.palette = 0; break;
+    case 16   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_colortwinkle        ; break;
+    case 17   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_breath              ; break;
+    case 18   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_breath              ; break;
+    case 19   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_tricolor_chase      ; neoSetting.palette = 0; break;
+    case 20   : _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_tricolor_chase      ; neoSetting.palette = 0; break;
+    default:break;
+  }   
+}
+bool EffectFx_mode::run()                                     {update(); return true;}
+String EffectFx_mode::setDynCtrl(UIControl*_val)              {set_dynCtrl(_val); return String();}
+// 
+// // mode_pride
+// void EffectFx_mode_pride::load(uint8_t strip_pos)                   {setup(strip_pos);                instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_pride; }   
+// bool EffectFx_mode_pride::run()                                     {update(); return true;}
+// String EffectFx_mode_pride::setDynCtrl(UIControl*_val)              {set_dynCtrl(_val); return String();}
+
+// // mode_rainbow_cycle   - IR 2
+// void EffectFx_mode_rainbow_cycle::load(uint8_t strip_pos)           {setup(strip_pos, OET_HUETIMER);  instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_rainbow_cycle;}   
+// bool EffectFx_mode_rainbow_cycle::run()                             {update(); return true;}
+// String EffectFx_mode_rainbow_cycle::setDynCtrl(UIControl*_val)      {set_dynCtrl(_val); return String();}
+// // mode_colortwinkle    - IR 1
+// void EffectFx_mode_colortwinkle::load(uint8_t strip_pos)            {setup(strip_pos);  instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_colortwinkle;}   
+// bool EffectFx_mode_colortwinkle::run()                              {update(); return true;}
+// String EffectFx_mode_colortwinkle::setDynCtrl(UIControl*_val)       {set_dynCtrl(_val); return String();}
+// // mode_breath          - IR 3
+// void EffectFx_mode_breath::load(uint8_t strip_pos)                  {setup(strip_pos, OET_HUETIMER);  instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_breath;}   
+// bool EffectFx_mode_breath::run()                                    {update(); return true;}
+// String EffectFx_mode_breath::setDynCtrl(UIControl*_val)             {set_dynCtrl(_val); return String();}
+// // mode_rainbow         - IR 4
+// void EffectFx_mode_rainbow::load(uint8_t strip_pos)                 {setup(strip_pos);  instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_rainbow; neoSetting.palette = 0; }   
+// bool EffectFx_mode_rainbow::run()                                   {update(); return true;}
+// String EffectFx_mode_rainbow::setDynCtrl(UIControl*_val)            {set_dynCtrl(_val); return String();}
+
+// void EffectFx_mode_color_wipe::load(uint8_t strip_pos)              {setup(strip_pos, OET_HUETIMER);  instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe;}   
+// bool EffectFx_mode_color_wipe::run()                                {update(); return true;}
+// String EffectFx_mode_color_wipe::setDynCtrl(UIControl*_val)         {set_dynCtrl(_val); return String();}
+
+// void EffectFx_mode_color_wipe_inv::load(uint8_t strip_pos)          {setup(strip_pos, OET_HUETIMER);  instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_inv;}   
+// bool EffectFx_mode_color_wipe_inv::run()                            {update(); return true;}
+// String EffectFx_mode_color_wipe_inv::setDynCtrl(UIControl*_val)     {set_dynCtrl(_val); return String();}
+
+// void EffectFx_mode_color_wipe_rev_inv::load(uint8_t strip_pos)      {setup(strip_pos, OET_HUETIMER);  instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_rev_inv;}   
+// bool EffectFx_mode_color_wipe_rev_inv::run()                        {update(); return true;}
+// String EffectFx_mode_color_wipe_rev_inv::setDynCtrl(UIControl*_val) {set_dynCtrl(_val); return String();}
+
+// void EffectFx_mode_color_wipe_random::load(uint8_t strip_pos)       {setup(strip_pos);                instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_color_wipe_random;}   
+// bool EffectFx_mode_color_wipe_random::run()                         {update(); return true;}
+// String EffectFx_mode_color_wipe_random::setDynCtrl(UIControl*_val)  {set_dynCtrl(_val); return String();}
+
+// void EffectFx_mode_tricolor_chase::load(uint8_t strip_pos)          {setup(strip_pos, OET_HUETIMER);  instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_tricolor_chase; neoSetting.palette = 0;}   
+// bool EffectFx_mode_tricolor_chase::run()                            {update(); return true;}
+// String EffectFx_mode_tricolor_chase::setDynCtrl(UIControl*_val)     {set_dynCtrl(_val); return String();}
+
+// void EffectFx_mode_colorwaves::load(uint8_t strip_pos)              {setup(strip_pos, OET_PALGRAD);   instance(); _neoFxxPtr->_effectMod[0] = &WS2812FX::mode_colorwaves;}   
+// bool EffectFx_mode_colorwaves::run()                                {update(); return true;}
+// String EffectFx_mode_colorwaves::setDynCtrl(UIControl*_val)         {set_dynCtrl(_val); return String();}
+
+
+    // case IR24_FLASH     : changeEffect(27);                   break; // 27 EffectFx_mode_colortwinkle
+    // case IR24_STROBE    : changeEffect(15);                   break; // 15 EffectFx_mode_rainbow_cycle
+    // case IR24_FADE      : changeEffect(28);                   break; // 28 EffectFx_mode_breath
+    // case IR24_SMOOTH    : changeEffect(26);                   break; // 26 EffectFx_mode_rainbow

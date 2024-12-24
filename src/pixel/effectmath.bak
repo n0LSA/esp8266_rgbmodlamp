@@ -1,0 +1,79 @@
+#include "../../include/pixel/effectmath.h"
+uint16_t XY(uint8_t sP, uint8_t x, uint8_t y) {
+	bool roate;
+	leds_managePtrGet()->get_matrix(sP)->get_rotatedMatrix(roate);
+	if (roate) 	return leds_managePtrGet()->getPixelNumber(sP, y, x);
+	else  		return leds_managePtrGet()->getPixelNumber(sP, x, y);
+}
+CRGB EffectMath::getLed(uint8_t sP, uint16_t idx) { return leds_managePtrGet()->get_crgbArray(sP)[idx]; }
+CRGBW EffectMath::getLedW(uint8_t sP, uint16_t idx) { return leds_managePtrGet()->get_crgwbArray(sP)[idx]; }
+
+void EffectMath::MoveFractionalNoise(uint8_t sP, bool _scale, const uint8_t noise3d[][16][16], int8_t amplitude, float shift) {
+  uint16_t width;
+  uint16_t height;
+  uint16_t nbLeds;
+  bool isTw;
+  leds_managePtrGet()->get_matrix(sP)->get_width(width);
+  leds_managePtrGet()->get_matrix(sP)->get_height(height);  
+  leds_managePtrGet()->get_numLeds(sP, nbLeds);  
+  leds_managePtrGet()->get_ledsIsTw(sP, isTw);  
+
+  uint8_t zD;
+  uint8_t zF;
+
+
+  CRGB *leds = leds_managePtrGet()->get_crgbArray(sP); // unsafe
+  CRGB ledsbuff[nbLeds];  	
+
+  uint16_t _side_a = _scale ? height : width;
+  uint16_t _side_b = _scale ? width : height;
+
+  for(uint8_t i=0; i<NUM_LAYERS; i++) 
+    for (uint16_t a = 0; a < _side_a; a++) {
+      uint8_t _pixel = _scale ? noise3d[i][0][a] : noise3d[i][a][0];
+      int16_t amount = ((int16_t)(_pixel - 128) * 2 * amplitude + shift * 256);
+      int8_t delta = ((uint16_t)fabs(amount) >> 8) ;
+      int8_t fraction = ((uint16_t)fabs(amount) & 255);
+      for (uint8_t b = 0 ; b < _side_b; b++) {
+        if (amount < 0) {
+          zD = b - delta; zF = zD - 1;
+        } else {
+          zD = b + delta; zF = zD + 1;
+        }
+
+	    CRGB PixelA = CRGB::Black  ;
+	    if ((zD >= 0) && (zD < _side_b))
+	      PixelA = _scale ? EffectMath::getLed(sP, leds_managePtrGet()->getPixelNumber(sP, zD%width, a%height)) : EffectMath::getLed(sP, leds_managePtrGet()->getPixelNumber(sP, a%width, zD%height));
+
+	    CRGB PixelB = CRGB::Black ;
+	    if ((zF >= 0) && (zF < _side_b))
+	      PixelB = _scale ? EffectMath::getLed(sP, leds_managePtrGet()->getPixelNumber(sP, zF%width, a%height)) : EffectMath::getLed(sP, leds_managePtrGet()->getPixelNumber(sP, a%width, zF%height));
+	    
+	    uint16_t x = _scale ? b : a;
+	    uint16_t y = _scale ? a : b;
+	    ledsbuff[leds_managePtrGet()->getPixelNumber(sP, x%width, y%height)] = (PixelA.nscale8(ease8InOutApprox(255 - fraction))) + (PixelB.nscale8(ease8InOutApprox(fraction)));   // lerp8by8(PixelA, PixelB, fraction );
+
+      }
+    }
+  memcpy(leds, ledsbuff, sizeof(CRGB)* nbLeds);
+}
+
+uint8_t EffectMath::ceil8(const uint8_t a, const uint8_t b){
+  return a/b + !!(a%b);
+}
+
+
+// void EffectMath::fadePixel(uint8_t sP, uint8_t i, uint8_t j, uint8_t step) {
+//     int32_t pixelNum = leds_managePtrGet()->getPixelNumber(sP, i, j);
+//     if (EffectMath::getPixColor(pixelNum) == 0U) return;
+
+//     CRGB led = EffectMath::getLed(sP, pixelNum);
+//     if (led.r >= 30U ||
+//         led.g >= 30U ||
+//         led.b >= 30U){
+//         EffectMath::setLedsfadeToBlackBy(pixelNum,step);
+//     }
+//     else{
+//         EffectMath::setLed(pixelNum, 0U);
+//     }
+// }

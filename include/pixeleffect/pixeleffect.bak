@@ -1,0 +1,124 @@
+#ifndef PIXELEFFECT_H
+#define PIXELEFFECT_H
+
+	#include "../fastled/base.h"  
+	// #include "../pixel/NeoPixelEffects.h"
+	#include "../pixel/w2812fx/fx.h"
+	#include "../pixel/effectcore.h"
+	#include "../device/device.h"
+
+	class EffectFx_neo : public EffectCalc
+	{
+	protected:
+		CRGBPalette16 		_gTargetPalette;		
+		int 				_pPos 			= 0;
+		unsigned long 		_timer_toward 	=	 0; 
+		WS2812FX			* _neoFxxPtr	= nullptr;
+		CRGBW				* ledarray_w	= nullptr;	
+		CRGB				* ledarray		= nullptr;	
+		uint16_t			numLeds			= 0;			
+		WS2812FX_setting 	neoSetting;
+		uint8_t 			oldBpm 			= 0;	
+		boolean 			statu 			= false;	
+		boolean 			show 			= true;
+		uint8_t 			_strip_pos;		
+		OUTPUT_EFFECTTYPE  	_effectType;
+		uint8_t				_varia = 60;
+		uint8_t				_hue_1 = 0;
+		uint8_t				_hue_2 = 0;
+		uint8_t				_mod = 0;
+	public:
+		// EffectFx_neo();
+		~EffectFx_neo();
+		virtual void setup( uint8_t strip_pos , OUTPUT_EFFECTTYPE mod = OET_NONE);
+		virtual void update();
+		virtual void instance();
+		virtual void set_dynCtrl(UIControl*_val);
+		
+	};
+	class EffectFx_mode :  public EffectFx_neo {
+	public:
+		EffectFx_mode(uint8_t mod = 0){_mod = mod;};
+	    void load(uint8_t) override;
+	    bool run() override;
+	    String setDynCtrl(UIControl*_val) override;
+	};
+	// class EffectFx_mode_pride :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_pride(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	// class EffectFx_mode_rainbow_cycle :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_rainbow_cycle(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	// class EffectFx_mode_colortwinkle :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_colortwinkle(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };	
+	// class EffectFx_mode_breath :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_breath(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	// class EffectFx_mode_rainbow :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_rainbow(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	// class EffectFx_mode_color_wipe :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_color_wipe(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	// class EffectFx_mode_color_wipe_inv :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_color_wipe_inv(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	// class EffectFx_mode_color_wipe_rev_inv :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_color_wipe_rev_inv(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	// class EffectFx_mode_color_wipe_random :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_color_wipe_random(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	// class EffectFx_mode_tricolor_chase :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_tricolor_chase(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };
+	
+	// class EffectFx_mode_colorwaves :  public EffectFx_neo {
+	// public:
+	// 	EffectFx_mode_colorwaves(boolean v1 = true, boolean v2 = false){neoSetting.reverseStart = v2; neoSetting.segment = v1;};
+	//     void load(uint8_t) override;
+	//     bool run() override;
+	//     String setDynCtrl(UIControl*_val) override;
+	// };						
+#endif // PIXELEFFECT_H

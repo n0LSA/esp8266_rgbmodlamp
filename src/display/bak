@@ -1,0 +1,122 @@
+void LAMP::fader(const uint8_t _tgtbrt, std::function<void(void)> callback){
+	--_steps;
+	if (! _steps) {   // on last step
+		if (callback != nullptr) {
+			#ifdef ESP8266
+				_fadeTicker.once_ms_scheduled(0, callback);
+			#elif defined ESP32
+				_fadeTicker.once_ms(0, callback);
+			#endif
+		} else { 
+			_fadeTicker.detach(); 
+		}
+		_brt = _tgtbrt;
+	} else {
+		_brt += _brtincrement;
+	}
+
+	brightness(_brt);
+}
+
+void LAMP::fadelight(const uint8_t _targetbrightness, const uint32_t _duration, std::function<void(void)> callback) {
+	// LOG(printf, PSTR("Fading to: %d\n"), _targetbrightness);
+	_fadeTicker.detach();
+
+	uint8_t _maxsteps = _duration / FADE_STEPTIME;
+	_brt = getBrightness();
+	uint8_t _brtdiff = abs(_targetbrightness - _brt);
+
+	if (_brtdiff > FADE_MININCREMENT * _maxsteps) {
+		_steps = _maxsteps;
+	} else {
+		_steps = _brtdiff/FADE_MININCREMENT;
+	}
+
+	if (_steps < 3) {
+		brightness(_targetbrightness);
+		#ifdef ESP8266
+			if (callback != nullptr) _fadeTicker.once_ms_scheduled(0, callback);
+		#elif defined ESP32
+			if (callback != nullptr) _fadeTicker.once_ms(0, callback);
+		#endif
+		return;
+	}
+
+	_brtincrement = (_targetbrightness - _brt) / _steps;
+
+	//_SPTO(Serial.printf_P, F_fadeinfo, _brt, _targetbrightness, _steps, _brtincrement)); _SPLN("");
+	_fadeTicker.attach_ms(FADE_STEPTIME, std::bind(&LAMP::fader, this, _targetbrightness, callback));
+}
+
+uint8_t LAMP::getBrightness(const bool natural){
+	return (natural ? brighten8_raw(FastLED.getBrightness()) : FastLED.getBrightness());
+}
+
+
+void LAMP::brightness(const uint8_t _brt, bool natural){
+	uint8_t _cur = natural ? brighten8_video(FastLED.getBrightness()) : FastLED.getBrightness();
+	if ( _cur == _brt) return;
+
+	if (_brt) {
+		FastLED.setBrightness(natural ? dim8_video(_brt) : _brt);
+	} else {
+		FastLED.setBrightness(0); //
+		FastLED.show();
+	}
+}
+
+
+  if (op == 8) {
+    doc.clear(); doc.garbageCollect();
+    ALT_TRACEC("main", "op: 4\n");
+
+    String out;
+    DevicePtrGet()->outputs_toNode( out);
+    UdpMulti::send(out) ;
+
+    out = "";
+    DevicePtrGet()->outputs_toAppi(out, true, true); 
+    Udp::send(out);  
+
+    multiSend_jsonDevice = true;  
+    timerMultiSend_jsonDevice = millis(); 
+
+    DevicePtrGet()->outputs_sav();
+    DevicePtrGet()->_outputsSav = true;    
+    return;
+  }  
+  if (op == 7) { 
+    doc.clear(); doc.garbageCollect();
+    ALT_TRACEC("main", "op: 7\n");
+
+    String out = "";
+    DevicePtrGet()->outputs_effect_toAppi(out);
+    Udp::send(out);  
+
+    multiSend_jsonDevice = true;  
+    timerMultiSend_jsonDevice = millis(); 
+
+    DevicePtrGet()->outputs_sav();
+    DevicePtrGet()->_outputsSav = true;
+    return;    
+  }
+  if (op == 4) { 
+    doc.clear(); doc.garbageCollect();
+    ALT_TRACEC("main", "op: 4\n");
+
+    String out;
+    DevicePtrGet()->outputs_toNode( out);
+    UdpMulti::send(out) ;
+
+    out = "";
+    if (DevicePtrGet()->outputs_requestEffect())  DevicePtrGet()->outputs_toAppi(out, true, true);
+    else                                          DevicePtrGet()->outputs_toAppi(out, false, true);
+    Udp::send(out);  
+
+    multiSend_jsonDevice = true;  
+    timerMultiSend_jsonDevice = millis(); 
+
+    DevicePtrGet()->outputs_sav();
+    DevicePtrGet()->_outputsSav = true;
+    return;    
+  }

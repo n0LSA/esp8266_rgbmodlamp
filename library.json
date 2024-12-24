@@ -1,0 +1,57 @@
+{
+  "name": "esp8266_rgbmodlamp",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "",
+  "keywords": "",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/AdriLighting/esp8266_rgbmodlamp.git"
+  },
+  "authors":
+  [
+    {
+      "name": "Grellard Adrien",
+      "email": "grellard.adrien@gmail.com",
+      "maintainer": true
+    }
+  ],
+  "dependencies": [
+    {
+        "owner": "Benoit Blanchon",
+        "name": "ArduinoJson",
+        "version": "https://github.com/bblanchon/ArduinoJson.git"
+    },
+    {
+        "owner": "jim lee",
+        "name": "LC_baseTools",
+        "version": "https://github.com/leftCoast/LC_baseTools.git"
+    },
+    {
+        "owner": "FastLED",
+        "name": "FastLED",
+        "version": " https://github.com/FastLED/FastLED.git"
+    },   
+    {
+        "owner": "Me No Dev ",
+        "name": "ESPAsyncTCP",
+        "version": "https://github.com/me-no-dev/ESPAsyncTCP.git"
+    }, 
+    {
+        "owner": "Me No Dev ",
+        "name": "ESPAsyncWebServer",
+        "version": "https://github.com/me-no-dev/ESPAsyncWebServer.git"
+    },  
+    {
+        "owner": "Ivan Seidel",
+        "name": "LinkedList",
+        "version": "https://github.com/AdriLighting/LinkedList.git"
+    }
+      
+  ],
+   
+  "frameworks": "arduino",
+  "platforms": "espressif8266",
+  "headers": "almllib.h"
+}
